@@ -1,97 +1,44 @@
 import streamlit as st
-import replicate
-import os
-from transformers import AutoTokenizer
+import requests
 
-# Set assistant icon to Snowflake logo
-icons = {"assistant": "./Snowflake_Logomark_blue.svg", "user": "⛷️"}
+# Function to fetch nutritional data (replace this with your actual data source)
+def get_nutritional_data(item):
+    # This is a placeholder function. Replace it with actual API calls or database queries.
+    # Example: Call an API to get nutritional data for the given item.
+    nutritional_data = {
+        'apple': {'calories': 52, 'protein': 0.3, 'carbs': 14, 'fat': 0.2},
+        'banana': {'calories': 89, 'protein': 1.1, 'carbs': 23, 'fat': 0.3},
+        'carrot': {'calories': 41, 'protein': 0.9, 'carbs': 10, 'fat': 0.2}
+    }
+    return nutritional_data.get(item.lower(), None)
 
-# App title
-st.set_page_config(page_title="Snowflake Arctic")
+# Streamlit app
+st.title("Fruit and Vegetable Blender")
 
-# Replicate Credentials
-with st.sidebar:
-    st.title('Snowflake Arctic')
-    if 'REPLICATE_API_TOKEN' in st.secrets:
-        #st.success('API token loaded!', icon='✅')
-        replicate_api = st.secrets['REPLICATE_API_TOKEN']
-    else:
-        replicate_api = st.text_input('Enter Replicate API token:', type='password')
-        if not (replicate_api.startswith('r8_') and len(replicate_api)==40):
-            st.warning('Please enter your Replicate API token.', icon='⚠️')
-            st.markdown("**Don't have an API token?** Head over to [Replicate](https://replicate.com) to sign up for one.")
-        #else:
-        #    st.success('API token loaded!', icon='✅')
+# Dynamic input fields
+num_items = st.number_input("Number of items to blend:", min_value=1, max_value=10, value=1)
+items = []
+for i in range(num_items):
+    item = st.text_input(f"Enter the name of item {i+1}:", key=f"item_{i}")
+    if item:
+        items.append(item)
 
-    os.environ['REPLICATE_API_TOKEN'] = replicate_api
-    st.subheader("Adjust model parameters")
-    temperature = st.sidebar.slider('temperature', min_value=0.01, max_value=5.0, value=0.3, step=0.01)
-    top_p = st.sidebar.slider('top_p', min_value=0.01, max_value=1.0, value=0.9, step=0.01)
-
-# Store LLM-generated responses
-if "messages" not in st.session_state.keys():
-    st.session_state.messages = [{"role": "assistant", "content": "Hi. I'm Arctic, a new, efficient, intelligent, and truly open language model created by Snowflake AI Research. Ask me anything."}]
-
-# Display or clear chat messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"], avatar=icons[message["role"]]):
-        st.write(message["content"])
-
-def clear_chat_history():
-    st.session_state.messages = [{"role": "assistant", "content": "Hi. I'm Arctic, a new, efficient, intelligent, and truly open language model created by Snowflake AI Research. Ask me anything."}]
-st.sidebar.button('Clear chat history', on_click=clear_chat_history)
-
-st.sidebar.caption('Built by [Snowflake](https://snowflake.com/) to demonstrate [Snowflake Arctic](https://www.snowflake.com/blog/arctic-open-and-efficient-foundation-language-models-snowflake). App hosted on [Streamlit Community Cloud](https://streamlit.io/cloud). Model hosted by [Replicate](https://replicate.com/snowflake/snowflake-arctic-instruct).')
-
-@st.cache_resource(show_spinner=False)
-def get_tokenizer():
-    """Get a tokenizer to make sure we're not sending too much text
-    text to the Model. Eventually we will replace this with ArcticTokenizer
-    """
-    return AutoTokenizer.from_pretrained("huggyllama/llama-7b")
-
-def get_num_tokens(prompt):
-    """Get the number of tokens in a given prompt"""
-    tokenizer = get_tokenizer()
-    tokens = tokenizer.tokenize(prompt)
-    return len(tokens)
-
-# Function for generating Snowflake Arctic response
-def generate_arctic_response():
-    prompt = []
-    for dict_message in st.session_state.messages:
-        if dict_message["role"] == "user":
-            prompt.append("<|im_start|>user\n" + dict_message["content"] + "<|im_end|>")
+# Calculate nutritional information
+if st.button("Calculate Nutrition"):
+    total_nutrition = {'calories': 0, 'protein': 0, 'carbs': 0, 'fat': 0}
+    for item in items:
+        nutrition = get_nutritional_data(item)
+        if nutrition:
+            total_nutrition['calories'] += nutrition['calories']
+            total_nutrition['protein'] += nutrition['protein']
+            total_nutrition['carbs'] += nutrition['carbs']
+            total_nutrition['fat'] += nutrition['fat']
         else:
-            prompt.append("<|im_start|>assistant\n" + dict_message["content"] + "<|im_end|>")
+            st.warning(f"Nutritional information for {item} not found.")
     
-    prompt.append("<|im_start|>assistant")
-    prompt.append("")
-    prompt_str = "\n".join(prompt)
-    
-    if get_num_tokens(prompt_str) >= 3072:
-        st.error("Conversation length too long. Please keep it under 3072 tokens.")
-        st.button('Clear chat history', on_click=clear_chat_history, key="clear_chat_history")
-        st.stop()
-
-    for event in replicate.stream("snowflake/snowflake-arctic-instruct",
-                           input={"prompt": prompt_str,
-                                  "prompt_template": r"{prompt}",
-                                  "temperature": temperature,
-                                  "top_p": top_p,
-                                  }):
-        yield str(event)
-
-# User-provided prompt
-if prompt := st.chat_input(disabled=not replicate_api):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar="⛷️"):
-        st.write(prompt)
-
-# Generate a new response if last message is not from assistant
-if st.session_state.messages[-1]["role"] != "assistant":
-    with st.chat_message("assistant", avatar="./Snowflake_Logomark_blue.svg"):
-        response = generate_arctic_response()
-        full_response = st.write_stream(response)
-    message = {"role": "assistant", "content": full_response}
-    st.session_state.messages.append(message)
+    # Display results
+    st.subheader("Total Nutritional Information")
+    st.write(f"Calories: {total_nutrition['calories']} kcal")
+    st.write(f"Protein: {total_nutrition['protein']} g")
+    st.write(f"Carbohydrates: {total_nutrition['carbs']} g")
+    st.write(f"Fat: {total_nutrition['fat']} g")
