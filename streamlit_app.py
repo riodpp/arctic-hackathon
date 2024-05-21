@@ -1,44 +1,88 @@
 import streamlit as st
-import requests
+import os
+from transformers import AutoTokenizer
+import replicate
+from dotenv import load_dotenv
 
-# Function to fetch nutritional data (replace this with your actual data source)
-def get_nutritional_data(item):
-    # This is a placeholder function. Replace it with actual API calls or database queries.
-    # Example: Call an API to get nutritional data for the given item.
-    nutritional_data = {
-        'apple': {'calories': 52, 'protein': 0.3, 'carbs': 14, 'fat': 0.2},
-        'banana': {'calories': 89, 'protein': 1.1, 'carbs': 23, 'fat': 0.3},
-        'carrot': {'calories': 41, 'protein': 0.9, 'carbs': 10, 'fat': 0.2}
+# Load environment variables
+load_dotenv()
+
+# Custom CSS for title
+st.markdown(
+    """
+    <style>
+    .title {
+        font-size: 48px;
+        text-align: center;
+        margin-bottom: 25px;
     }
-    return nutritional_data.get(item.lower(), None)
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-# Streamlit app
-st.title("Fruit and Vegetable Blender")
+# if 'REPLICATE_API_TOKEN' in st.secrets:
+#     #st.success('API token loaded!', icon='✅')
+#     replicate_api = st.secrets['REPLICATE_API_TOKEN']
+# else:
+replicate_api = os.getenv('REPLICATE_API_TOKEN')
 
-# Dynamic input fields
-num_items = st.number_input("Number of items to blend:", min_value=1, max_value=10, value=1)
-items = []
-for i in range(num_items):
-    item = st.text_input(f"Enter the name of item {i+1}:", key=f"item_{i}")
-    if item:
-        items.append(item)
+@st.cache_resource(show_spinner=False)
+def get_tokenizer():
+    """Get a tokenizer to make sure we're not sending too much text
+    text to the Model. Eventually we will replace this with ArcticTokenizer
+    """
+    return AutoTokenizer.from_pretrained("huggyllama/llama-7b")
+
+def get_num_tokens(prompt):
+    """Get the number of tokens in a given prompt"""
+    tokenizer = get_tokenizer()
+    tokens = tokenizer.tokenize(prompt)
+    return len(tokens)
+
+# Function for generating Snowflake Arctic response
+def generate_arctic_response():
+
+    for event in replicate.stream(
+        "snowflake/snowflake-arctic-instruct",
+        input={
+            "top_k": 50,
+            "top_p": 0.9,
+            "prompt": "Generate a poem about the Python programming language.",
+            "temperature": 0.2,
+            "max_new_tokens": 512,
+            "min_new_tokens": 0,
+            "stop_sequences": "<|im_end|>",
+            "prompt_template": "<|im_start|>system\nYou're a helpful assistant<|im_end|>\n<|im_start|>user\n{prompt}<|im_end|>\n\n<|im_start|>assistant\n",
+            "presence_penalty": 1.15,
+            "frequency_penalty": 0.2
+        },
+    ):
+        yield str(event)
+        
+
+with st.chat_message("assistant"):
+    st.write("Hello 👋")
+
+with st.sidebar:
+
+    # Streamlit app
+    st.markdown('<h1 class="title">🍓 NutriJUZZ 🍇</h1>', unsafe_allow_html=True)
+    
+    # Dynamic input fields
+    num_items = st.number_input("Number of items to blend:", min_value=1, max_value=10, value=1)
+    items = []
+    for i in range(num_items):
+        item = st.text_input(f"Enter the name of item {i+1}:", key=f"item_{i}")
+        if item:
+            items.append(item)
 
 # Calculate nutritional information
-if st.button("Calculate Nutrition"):
-    total_nutrition = {'calories': 0, 'protein': 0, 'carbs': 0, 'fat': 0}
-    for item in items:
-        nutrition = get_nutritional_data(item)
-        if nutrition:
-            total_nutrition['calories'] += nutrition['calories']
-            total_nutrition['protein'] += nutrition['protein']
-            total_nutrition['carbs'] += nutrition['carbs']
-            total_nutrition['fat'] += nutrition['fat']
-        else:
-            st.warning(f"Nutritional information for {item} not found.")
+if st.sidebar.button("Calculate Nutrition"):
+    st.write(get_num_tokens("Generate a poem about the Python programming language."))
+    with st.chat_message("assistant"):
+        response = generate_arctic_response()
+        full_response = st.write_stream(response)
     
-    # Display results
-    st.subheader("Total Nutritional Information")
-    st.write(f"Calories: {total_nutrition['calories']} kcal")
-    st.write(f"Protein: {total_nutrition['protein']} g")
-    st.write(f"Carbohydrates: {total_nutrition['carbs']} g")
-    st.write(f"Fat: {total_nutrition['fat']} g")
+    st.write(get_num_tokens(full_response))
+
