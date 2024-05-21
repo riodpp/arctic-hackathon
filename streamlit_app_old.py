@@ -65,24 +65,14 @@ def generate_prompt(user_input):
     """
     return prompt
 
-@st.experimental_dialog("Result")
-def show_dialog(response):
-    with st.spinner('Wait for it...'):
-        st.write(response)
+with st.chat_message("assistant"):
+    st.write("Hello 👋, I'm your nutrition advisor, Please fill the field in the left.")
 
-st.title("🍓 NutriJUZZ 🍇")
-st.subheader("Welcome to NutriJUZZ, Your AI-Powered Nutrition Counter")
+with st.sidebar:
 
-st.text("""
-    Unlock the full potential of your homemade juices with NutriJuice, 
-    the revolutionary app designed to transform your juicing experience. 
-    Powered by advanced AI technology, NutriJuice effortlessly calculates the nutritional value of every sip, 
-    ensuring you stay informed and healthy.
-""")
-
-tab_main, tab_how_to = st.tabs(["Juice it", "How to Use"])
-
-with tab_main:
+    # Streamlit app
+    st.markdown('<h1 class="title">🍓 NutriJUZZ 🍇</h1>', unsafe_allow_html=True)
+    
     # Dynamic input fields
     num_items = st.number_input("Number of items to blend:", min_value=1, max_value=5, value=1)
     items = []
@@ -91,43 +81,9 @@ with tab_main:
         if item:
             items.append(item)
 
-    # # Calculate nutritional information
-    if st.button("Calculate Nutrition"):
+# Calculate nutritional information
+if st.sidebar.button("Calculate Nutrition"):
+    with st.chat_message("assistant"):
         response = generate_arctic_response(generate_prompt(items))
-        show_dialog(response)
-
-    
-
-with tab_how_to:
-    st.markdown("""
-        ### How to Use NutriJUZZ
-        1. Enter the name of the food items you want to blend. You can enter up to 5 items.
-        2. Click the 'Calculate Nutrition' button.
-        3. NutriJUZZ will calculate the nutritional information for you.
-                
-        ### Note
-        - If the list is more than one, NutriJUZZ will calculate the result of blending all the food.
-        - If there is an item that is not a food, NutriJUZZ will ignore it in the calculation.
-        - You can enter the amount of each item in the name, e.g., 'Apple 200g', '1 pcs of banana'.
-        - If there is no information about the serving size, NutriJUZZ will assume it as 100g.
-    """)
-
-# with st.sidebar:
-
-#     # Streamlit app
-#     st.markdown('<h1 class="title">🍓 NutriJUZZ 🍇</h1>', unsafe_allow_html=True)
-    
-#     # Dynamic input fields
-#     num_items = st.number_input("Number of items to blend:", min_value=1, max_value=5, value=1)
-#     items = []
-#     for i in range(num_items):
-#         item = st.text_input(f"Enter the name of item {i+1}:", key=f"item_{i}")
-#         if item:
-#             items.append(item)
-
-# # Calculate nutritional information
-# if st.sidebar.button("Calculate Nutrition"):
-#     with st.chat_message("assistant"):
-#         response = generate_arctic_response(generate_prompt(items))
-#         full_response = st.write_stream(response)
+        full_response = st.write_stream(response)
 
