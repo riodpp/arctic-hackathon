@@ -80,7 +80,7 @@ st.text("""
     ensuring you stay informed and healthy.
 """)
 
-tab_main, tab_how_to = st.tabs(["Juice it", "How to Use"])
+tab_main, tab_how_to = st.tabs(["🍊 Juice it", "❔ How to Use"])
 
 with tab_main:
     # Dynamic input fields
