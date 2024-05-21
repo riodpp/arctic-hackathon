@@ -68,6 +68,7 @@ def generate_prompt(user_input):
         {user_input_string}
         If the list is more than one please count for the result of blending all the food.
         If there is an item that not a food, please ignore it in calculation and tell me.
+        if there is no information about the serving size, please assume it as 100g.
 
         Make the output like these format:
         
