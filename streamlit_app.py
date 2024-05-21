@@ -46,20 +46,19 @@ def generate_prompt(user_input):
     user_input_string = ",".join(user_input)
     prompt = f"""
         You're a Nutrition Expert,
-        Below is the food that I want you to count the nutritional information:
-        {user_input_string}
-        If the list is more than one please count for the result of blending all the food.
-        If there is an item that not a food, please ignore it in calculation and tell me.
-        if there is no information about the serving size, please assume it as 100g.
+        Please follow this rule first:
+        - If the list is more than one please count for the result of blending all the food.
+        - If there is an item that not a food, please ignore it in calculation and tell me.
+        - If there is no information about the serving size, please assume it as 100g.
+        - If you're not sure, Don't ask question to me, just count the nutrition facts with your asumption
 
-        Don't ask following question to me, just count the nutrition facts
+        I want you to count the nutrition facts of the following food items:
+        {user_input_string}
 
         Make the output like these format:
         
         | Nutrient | Amount | Daily Value |
         |----------|--------|-------------|
-
-        Can you help me calculate the nutritional information?
 
         Thank you!
     """
