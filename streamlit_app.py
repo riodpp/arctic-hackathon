@@ -50,15 +50,19 @@ def generate_prompt(user_input):
         - If the list is more than one please count for the result of blending all the food.
         - If there is an item that not a food, please ignore it in calculation and tell me.
         - If there is no information about the serving size, please assume it as 100g.
-        - If you're not sure, Don't ask question to me, just count the nutrition facts with your asumption
+        - If you're not sure, Don't ask question to me, just count the nutrition facts with your asumption.
 
         I want you to count the nutrition facts of the following food items:
         {user_input_string}
 
         Make the output like these format:
+
+        The nutrition facts of the < list of food items > are as follows:
         
         | Nutrient | Amount | Daily Value |
         |----------|--------|-------------|
+
+        Then give me your thought of the mix.
 
         Thank you!
     """
@@ -66,6 +70,10 @@ def generate_prompt(user_input):
 
 @st.experimental_dialog("Result")
 def show_dialog(response):
+    st.write("You'll mix the following food items:")
+    for item in items:
+        st.success(item)
+    st.divider()
     with st.spinner('Wait for it...'):
         st.write(response)
 
@@ -109,6 +117,7 @@ with tab_how_to:
         - If there is an item that is not a food, NutriJUZZ will ignore it in the calculation.
         - You can enter the amount of each item in the name, e.g., 'Apple 200g', '1 pcs of banana'.
         - If there is no information about the serving size, NutriJUZZ will assume it as 100g.
+        - The values may not be entirely accurate due to variations in nutritional content based on the specific food items and their origins.
     """)
 
 # with st.sidebar:
